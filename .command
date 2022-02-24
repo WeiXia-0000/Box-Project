@@ -1,0 +1,1 @@
+java boxshogi/Main -f

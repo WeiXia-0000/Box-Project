@@ -1,0 +1,2 @@
+language = "java10"
+run = "javac boxshogi/Main.java; chmod a+x ./test_runners/test-runner-linux; ./test_runners/test-runner-linux --verbose"
