@@ -144,7 +144,7 @@ public class BoxShogi {
         
 
     /**
-     * Function that handles the user input.
+     * Function that handles the user input.`
      * @param userInpuString string representing the user input.
      * @param lowerTurn boolean state whether is lower player's turn
      * @return whether the input is valid
@@ -185,22 +185,146 @@ public class BoxShogi {
         // Get the piece to move.
         String locationToBeMove = inputs[1];
         AbstractMap.SimpleEntry<Integer, Integer> colRowPair = parseStringLocationToColRow(locationToBeMove);
-        Piece pieceToMove = this.gameBoard.getPiece(colRowPair.getKey(), colRowPair.getValue());
+        int col = colRowPair.getKey(); 
+        int row =  colRowPair.getValue();
+        Piece pieceToMove = this.gameBoard.getPiece(col, row); 
+
+        // Check is the piece to be moved belongs to the player.
         if (pieceToMove == null 
                 || (pieceToMove.getIsUpper() && lowerTurn) 
                     || (!pieceToMove.getIsUpper() && !lowerTurn)) {
-            if (lowerTurn) { winMessage = "UPPER players wins.  "; }
-            else { winMessage = "lower players wins.  "; }
-            winMessage += "Illegal move.\n";
-            endGameFlag = 1;
+            setWinMessage("Illegal move.", lowerTurn);
             return true;
         }
 
         // Place piece on new location.
         String locationMoveTo= inputs[2];
         AbstractMap.SimpleEntry<Integer, Integer> newColRowPair = parseStringLocationToColRow(locationMoveTo);
-        this.gameBoard.removePieceFromBoard(colRowPair.getKey(), colRowPair.getValue());
-        this.gameBoard.placePieceOnBoard(newColRowPair.getKey(), newColRowPair.getValue(), pieceToMove);
+        int newCol = newColRowPair.getKey();
+        int newRow =  newColRowPair.getValue();
+
+        // Check is the move possible or not.
+        if (checkMoveLegal(col, row, newCol, newRow, pieceToMove, lowerTurn)) {
+            gameBoard.removePieceFromBoard(col, row);
+            Piece pieceOnTargetLocation = gameBoard.getPiece(newCol, newRow);
+            if (pieceOnTargetLocation!= null) {
+                // Capture piece that in target location.
+                if (lowerTurn) { lowerCaptures.add(pieceOnTargetLocation.getName().toLowerCase()); }
+                else { upperCaptures.add(pieceOnTargetLocation.getName().toUpperCase()); }
+            }
+            gameBoard.placePieceOnBoard(newCol, newRow, pieceToMove);
+        } else {
+            setWinMessage("Illegal move.", lowerTurn);
+        }
+
+        return true;
+    }
+
+    /**
+     * Function that sets the win message.
+     * @param message message to be shown
+     * @param lowerTurn boolean state whether is lower player's turn
+     */
+    private void setWinMessage(String message, boolean lowerTurn) {
+        if (lowerTurn) { winMessage = "UPPER players wins.  "; }
+        else { winMessage = "lower players wins.  "; }
+        winMessage += message + "\n";
+        endGameFlag = 1;
+    }
+
+    private boolean checkMoveLegal(int col, int row, int newCol, int newRow, Piece pieceToMove, boolean lowerTurn) {
+        String pieceName = pieceToMove.getName();
+        String pieceType = pieceName.substring(pieceName.length()-1);
+
+        // Compute distance between col and newCol, row and newRow
+        int dCol = newCol-col;
+        int dRow = newRow-row;
+
+        // If piece is a box drive
+        if (pieceType.equalsIgnoreCase("d")) {
+            if (Math.abs(dCol) <= 1 && Math.abs(dRow) <= 1) {
+                return true;
+            }
+            return false;
+        }
+
+        // If piece is a box note
+        if (pieceType.equalsIgnoreCase("n")) {
+            if (dCol == 0 || dRow == 0) {
+                if ((dCol == 2 && gameBoard.getPiece(col+1, row) != null)
+                        || (dCol == -2 && gameBoard.getPiece(col-1, row) != null) 
+                        || (dRow == 2 && gameBoard.getPiece(col, row+1) != null) 
+                        || (dRow == -2 && gameBoard.getPiece(col, row-1) != null) ) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // If piece is box governance
+        if (pieceType.equalsIgnoreCase("g")) {
+            if ((Math.abs(dCol) == 1 && Math.abs(dRow) == 1)) {
+                return true;
+            } else if (Math.abs(dCol) == 2 && Math.abs(dRow) == 2) {
+                if ((dCol == 2 && dRow == 2 && gameBoard.getPiece(col+1, row+1) != null)
+                        || (dCol == 2 && dRow == -2 && gameBoard.getPiece(col+1, row-1) != null) 
+                        || (dCol == -2 && dRow == 2 && gameBoard.getPiece(col-1, row+1) != null) 
+                        || (dCol == -2 && dRow == -2 && gameBoard.getPiece(col-1, row-1) != null) ) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // If piece is box governance
+        if (pieceType.equalsIgnoreCase("g")) {
+            if ((Math.abs(dCol) == 1 && Math.abs(dRow) == 1)) {
+                return true;
+            } else if (Math.abs(dCol) == 2 && Math.abs(dRow) == 2) {
+                if ((dCol == 2 && dRow == 2 && gameBoard.getPiece(col+1, row+1) != null)
+                        || (dCol == 2 && dRow == -2 && gameBoard.getPiece(col+1, row-1) != null) 
+                        || (dCol == -2 && dRow == 2 && gameBoard.getPiece(col-1, row+1) != null) 
+                        || (dCol == -2 && dRow == -2 && gameBoard.getPiece(col-1, row-1) != null) ) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // If piece is box shield
+        if (pieceType.equalsIgnoreCase("s")) {
+            if ((Math.abs(dCol) == 1 && Math.abs(dRow) == 1)) {
+                if (dCol != 0 && ((lowerTurn && dRow == -1)
+                        || (!lowerTurn && dRow == 1))) {
+                    return false;
+                }
+                return true;
+            }
+            return false;
+        }
+
+        // If piece is box relay
+        if (pieceType.equalsIgnoreCase("r")) {
+            if ((Math.abs(dCol) == 1 && Math.abs(dRow) == 1)) {
+                if (dRow == 0 && dCol != 0) {
+                    return false;
+                }
+                if (dCol == 0 && ((lowerTurn && dRow == -1)
+                        || (!lowerTurn && dRow == 1))) {
+                    return false;
+                }
+                return true;
+            }
+            return false;
+        }
+
+        // If piece is box preview
+        if (pieceType.equalsIgnoreCase("p")) {
+            if (dCol == 0 && ((lowerTurn && dRow == 1) || (!lowerTurn && dRow == -1))) {
+                return true;
+            }
+            return false;
+        }
 
         return true;
     }
