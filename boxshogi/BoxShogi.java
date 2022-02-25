@@ -278,7 +278,7 @@ public class BoxShogi {
 
         // If piece is box governance
         if (pieceType.equalsIgnoreCase("g")) {
-            if ((Math.abs(dCol) == 1 && Math.abs(dRow) == 1)) {
+            if ((Math.abs(dCol) <= 1 && Math.abs(dRow) <= 1)) {
                 return true;
             } else if (Math.abs(dCol) == 2 && Math.abs(dRow) == 2) {
                 if ((dCol == 2 && dRow == 2 && gameBoard.getPiece(col+1, row+1) != null)
@@ -293,7 +293,7 @@ public class BoxShogi {
 
         // If piece is box shield
         if (pieceType.equalsIgnoreCase("s")) {
-            if ((Math.abs(dCol) == 1 && Math.abs(dRow) == 1)) {
+            if ((Math.abs(dCol) <= 1 && Math.abs(dRow) <= 1)) {
                 if (dCol != 0 && ((lowerTurn && dRow == -1)
                         || (!lowerTurn && dRow == 1))) {
                     return false;
@@ -305,16 +305,20 @@ public class BoxShogi {
 
         // If piece is box relay
         if (pieceType.equalsIgnoreCase("r")) {
-            if ((Math.abs(dCol) == 1 && Math.abs(dRow) == 1)) {
+            if ((Math.abs(dCol) <= 1 && Math.abs(dRow) <= 1)) {
                 if (dRow == 0 && dCol != 0) {
+                    System.out.println(1);
                     return false;
                 }
                 if (dCol == 0 && ((lowerTurn && dRow == -1)
                         || (!lowerTurn && dRow == 1))) {
+                        System.out.println(2);
                     return false;
                 }
                 return true;
             }
+
+            System.out.println(3);
             return false;
         }
 
