@@ -307,18 +307,14 @@ public class BoxShogi {
         if (pieceType.equalsIgnoreCase("r")) {
             if ((Math.abs(dCol) <= 1 && Math.abs(dRow) <= 1)) {
                 if (dRow == 0 && dCol != 0) {
-                    System.out.println(1);
                     return false;
                 }
                 if (dCol == 0 && ((lowerTurn && dRow == -1)
                         || (!lowerTurn && dRow == 1))) {
-                        System.out.println(2);
                     return false;
                 }
                 return true;
             }
-
-            System.out.println(3);
             return false;
         }
 
