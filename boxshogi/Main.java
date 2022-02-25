@@ -1,9 +1,12 @@
 package boxshogi;
 
+import java.io.IOException;
+
 public class Main {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         if (args.length == 1 && args[0].equals("-i")) {
-            System.out.println("Must implement interactive mode");
+            BoxShogi game = new BoxShogi(System.in);
+            game.gameStart();
         } else if (args.length == 2 && args[0].equals("-f")) {
             try {
                 Utils.TestCase input = Utils.parseTestCase(args[1]);
