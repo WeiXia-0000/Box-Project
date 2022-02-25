@@ -117,7 +117,7 @@ public class BoxShogi {
 
         // If win message has been set, show win message
         if (!winMessage.equals("")) {
-            gameStatusMessage += winMessage + "\n";
+            gameStatusMessage += winMessage;
         } else {
             // If player is in check, show in check.
             if (availableMoves != null && availableMoves.size() != 0) {
@@ -226,9 +226,9 @@ public class BoxShogi {
      * @param lowerTurn boolean state whether is lower player's turn
      */
     private void setWinMessage(String message, boolean lowerTurn) {
-        if (lowerTurn) { winMessage = "UPPER players wins.  "; }
-        else { winMessage = "lower players wins.  "; }
-        winMessage += message + "\n";
+        if (lowerTurn) { winMessage = "UPPER player wins.  "; }
+        else { winMessage = "lower player wins.  "; }
+        winMessage += message;
         endGameFlag = 1;
     }
 
@@ -354,10 +354,7 @@ public class BoxShogi {
         if ((lowerTurn && !lowerCaptures.contains(pieceName)) 
                 || (!lowerTurn && !upperCaptures.contains(pieceName.toUpperCase()))
                     || (this.gameBoard.getPiece(colToBePlace, rowToBePlace) != null)) {
-            if (lowerTurn) { winMessage = "UPPER players wins.  "; }
-            else { winMessage = "lower players wins.  "; }
-            winMessage += "Illegal move.\n";
-            endGameFlag = 1;
+            setWinMessage("Illegal move.", lowerTurn);
             return true;
         }
 
