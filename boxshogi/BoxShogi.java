@@ -1,5 +1,6 @@
 package boxshogi;
 
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -10,28 +11,68 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 
 public class BoxShogi {
+    private final int MAX_TURN = 200;
+
     private int endGameFlag;
     private Board gameBoard; 
     private String winMessage;
     private String previewMove;
     private boolean lowerTurn;
+    private List<String> moves;
     private List<String> upperCaptures;
     private List<String> lowerCaptures;
     private List<String> availableMoves;
+    private List<Utils.InitialPosition> initialPieces;
     private BufferedReader bufferedReader;
+
+    /** File mode */
+
+    public BoxShogi(Utils.TestCase input) {
+        // Initial
+        this.gameBoard = new Board(true);
+        this.lowerTurn = true;
+        this.moves = input.moves;
+        this.winMessage = "";
+        this.initialPieces = input.initialPieces;
+        this.upperCaptures = input.upperCaptures;
+        this.lowerCaptures = input.lowerCaptures;
+        initialEmptyBoard(initialPieces);
+
+        // Run move
+        for (String eachMove : moves) {
+            if (!winMessage.equals("")) {
+                showGameStatus(lowerTurn);
+                break;
+            }
+            handleUserInput(eachMove, this.lowerTurn);
+        }
+    }
+
+    private void initialEmptyBoard(List<Utils.InitialPosition> initialPositions) {
+        for (Utils.InitialPosition eachPosition : initialPositions) {
+            String[] splited = eachPosition.toString().split(" ");
+            String name = splited[0];
+            String location = splited[1];
+            Piece piece = new Piece(name, Character.isUpperCase(name.charAt(name.length()-1)));
+            AbstractMap.SimpleEntry<Integer, Integer> colRowPair = parseStringLocationToColRow(location);
+            this.gameBoard.placePieceOnBoard(colRowPair.getKey(), colRowPair.getValue(), piece);
+        }
+    }
+
+    /** Interactive mode */
 
     public BoxShogi(InputStream inputStream) {
         this.endGameFlag = 0;
         this.winMessage = "";
         this.previewMove = "";
         this.lowerTurn = true;
-        this.gameBoard = new Board();
+        this.gameBoard = new Board(false);
         this.upperCaptures = new ArrayList<>();
         this.lowerCaptures = new ArrayList<>();
         this.availableMoves = new ArrayList<>();
         this.bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
     }
-    
+
     public void gameStart() throws IOException {
         while (true) {
             // Show game status.
@@ -136,18 +177,27 @@ public class BoxShogi {
                 || !(inputs[1].matches("[a-zA-Z]\\d") && inputs[2].matches("[a-zA-Z]\\d"))) {
             return false;
         }
+
+        // Get the piece to move.
         String locationToBeMove = inputs[1];
-        String locationMoveTo= inputs[2];
-        Piece pieceToMove = getPieceOnLocation(locationToBeMove);
+        AbstractMap.SimpleEntry<Integer, Integer> colRowPair = parseStringLocationToColRow(locationToBeMove);
+        Piece pieceToMove = this.gameBoard.getPiece(colRowPair.getKey(), colRowPair.getValue());
         if (pieceToMove == null 
                 || (pieceToMove.getIsUpper() && lowerTurn) 
                     || (!pieceToMove.getIsUpper() && !lowerTurn)) {
             if (lowerTurn) { winMessage = "UPPER players wins.  "; }
             else { winMessage = "lower players wins.  "; }
-            winMessage += "Illegal move.";
+            winMessage += "Illegal move.\n";
             endGameFlag = 1;
             return true;
         }
+
+        // Place piece on new location.
+        String locationMoveTo= inputs[2];
+        AbstractMap.SimpleEntry<Integer, Integer> newColRowPair = parseStringLocationToColRow(locationMoveTo);
+        this.gameBoard.removePieceFromBoard(colRowPair.getKey(), colRowPair.getValue());
+        this.gameBoard.placePieceOnBoard(newColRowPair.getKey(), newColRowPair.getValue(), pieceToMove);
+
         return true;
     }
 
@@ -164,19 +214,19 @@ public class BoxShogi {
     }
 
     /**
-     * Funtion that returns the Piece on given location of the board.
+     * Funtion that returns the Pair representing the col and row.
      * @param location string in form "[a-zA-Z]\\d" represting location
-     * @return the Piece on given location of the board
+     * @return the Pair representing the col and row
      */
-    private Piece getPieceOnLocation(String location) {
+    private AbstractMap.SimpleEntry<Integer, Integer> parseStringLocationToColRow(String location) {
         if (location.length() == 2) {
             int firstPart = location.charAt(0) - 'a';
-            int secondPart = Integer.valueOf(location.substring(1));
+            int secondPart = Integer.valueOf(location.substring(1)) - 1;
             if (firstPart < 0 || firstPart > 4 || secondPart < 0 || secondPart > 4) {
                 System.out.println("Invalid location in getPieceOnLocation!\n"); 
                 return null; 
             }
-            return gameBoard.getPiece(firstPart, secondPart);
+            return new AbstractMap.SimpleEntry<>(firstPart, secondPart);
         }
         System.out.println("Invalid location in getPieceOnLocation!\n"); 
         return null;

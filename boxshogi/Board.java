@@ -10,9 +10,12 @@ public class Board {
 
     private Piece[][] board;
 
-    public Board() {
+    public Board(boolean empty) {
         // Initial borad.
         board = new Piece[BOARD_SIZE][BOARD_SIZE];
+
+        // IF we need an empty board
+        if (empty) { return; }
 
     	// Store all the possible strings
         String[] pieces = {"n", "g", "r", "s", "d", "p"};
@@ -41,14 +44,34 @@ public class Board {
     }
 
     /**
-     * Function that return the pice on given position
+     * Function that return the piece on given position.
      * @param col integer representing the col
-     * @param row integer representing the roe
+     * @param row integer representing the row
      * @return the Piece on given position
      */
     public Piece getPiece(int col, int row) {
         return board[col][row];
     }
+
+    /**
+     * Function that places a piece on given position.
+     * @param col integer representing the col
+     * @param row integer representing the row
+     * @param piece the piece to place
+     */
+    public void placePieceOnBoard(int col, int row, Piece piece) {
+        this.board[col][row] = piece;
+    }
+
+    /**
+     * Function that remove a piece from given position.
+     * @param col integer representing the col
+     * @param row integer representing the row
+     */
+    public void removePieceFromBoard(int col, int row) {
+        this.board[col][row] = null;
+    }
+
 
     /**
      * Function that return whether given position is occupied by a piece.
