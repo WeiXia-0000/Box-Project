@@ -1,8 +1,8 @@
 package boxshogi;
 
 import java.util.AbstractMap;
-import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 
 import java.io.BufferedReader;
@@ -33,19 +33,22 @@ public class BoxShogi {
         this.lowerTurn = true;
         this.moves = input.moves;
         this.winMessage = "";
-        this.initialPieces = input.initialPieces;
-        this.upperCaptures = input.upperCaptures;
-        this.lowerCaptures = input.lowerCaptures;
+        this.initialPieces = new LinkedList<Utils.InitialPosition>(input.initialPieces);
+        this.upperCaptures = new LinkedList<String>(input.upperCaptures);
+        this.lowerCaptures = new LinkedList<String>(input.lowerCaptures);
         initialEmptyBoard(initialPieces);
 
         // Run move
         for (String eachMove : moves) {
             if (!winMessage.equals("")) {
-                showGameStatus(lowerTurn);
                 break;
             }
             handleUserInput(eachMove, this.lowerTurn);
+            lowerTurn = !lowerTurn;
         }
+
+        showGameStatus(lowerTurn);
+        System.out.print("\n");
     }
 
     private void initialEmptyBoard(List<Utils.InitialPosition> initialPositions) {
@@ -67,23 +70,19 @@ public class BoxShogi {
         this.previewMove = "";
         this.lowerTurn = true;
         this.gameBoard = new Board(false);
-        this.upperCaptures = new ArrayList<>();
-        this.lowerCaptures = new ArrayList<>();
-        this.availableMoves = new ArrayList<>();
+        this.upperCaptures = new LinkedList<>();
+        this.lowerCaptures = new LinkedList<>();
+        this.availableMoves = new LinkedList<>();
         this.bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
     }
 
     public void gameStart() throws IOException {
         while (true) {
+             // Check is need to end the game
+             if (endGameFlag == 1) { break; }
+
             // Show game status.
             showGameStatus(lowerTurn);
-
-            // Check is need to end the game
-            if (endGameFlag == 1) { break; }
-
-            // Show player before ask for input.
-            if (lowerTurn) { System.out.print("lower> "); }
-            else { System.out.print("UPPER> "); }
 
             // Read in input and handle it.
             String userInput = bufferedReader.readLine().trim();
@@ -118,18 +117,22 @@ public class BoxShogi {
 
         // If win message has been set, show win message
         if (!winMessage.equals("")) {
-            gameStatusMessage += winMessage;
+            gameStatusMessage += winMessage + "\n";
         } else {
             // If player is in check, show in check.
-            if (availableMoves.size() != 0) {
+            if (availableMoves != null && availableMoves.size() != 0) {
                 if (lowerTurn) { gameStatusMessage += "lower player is in check!"; }
                 else { gameStatusMessage += "UPPER player is in check!"; }
                 gameStatusMessage += "Available moves:\n" + String.join("\n", availableMoves);
                 availableMoves.clear();
             }
+
+            // Show player before ask for input.
+            if (lowerTurn) {gameStatusMessage += "lower>"; }
+            else { gameStatusMessage += "UPPER>"; }
         }
 
-        System.out.println(gameStatusMessage);
+        System.out.print(gameStatusMessage);
     }
 
     /**
@@ -172,6 +175,7 @@ public class BoxShogi {
      * @return
      */
     private boolean handleMove(String[] inputs, boolean lowerTurn) {
+        // Check input format.
         if ((inputs.length == 4 && !inputs[3].equalsIgnoreCase("promote")) 
                 || inputs.length != 3
                 || !(inputs[1].matches("[a-zA-Z]\\d") && inputs[2].matches("[a-zA-Z]\\d"))) {
@@ -206,10 +210,40 @@ public class BoxShogi {
      * @param inputs
      */
     private boolean handleDrop(String[] inputs, boolean lowerTurn) {
+        // Check input format.
         if (inputs.length != 3
                 || !(inputs[1].matches("[a-zA-Z]") && inputs[2].matches("[a-zA-Z]\\d"))) {
             return false;
         }
+
+        // Store name and location
+        String pieceName = inputs[1];
+        String location = inputs[2];
+
+        // Parse location
+        AbstractMap.SimpleEntry<Integer, Integer> colRowPair = parseStringLocationToColRow(location);
+        int colToBePlace = colRowPair.getKey();
+        int rowToBePlace = colRowPair.getValue();
+
+        // Check is the piece has been capture
+        // of is the place to be place is legal
+        if ((lowerTurn && !lowerCaptures.contains(pieceName)) 
+                || (!lowerTurn && !upperCaptures.contains(pieceName.toUpperCase()))
+                    || (this.gameBoard.getPiece(colToBePlace, rowToBePlace) != null)) {
+            if (lowerTurn) { winMessage = "UPPER players wins.  "; }
+            else { winMessage = "lower players wins.  "; }
+            winMessage += "Illegal move.\n";
+            endGameFlag = 1;
+            return true;
+        }
+
+        // Remove from captures
+        if (lowerTurn) { lowerCaptures.remove(pieceName); }
+        else { upperCaptures.remove(pieceName.toUpperCase()); }
+
+        // Drop piece on board
+        this.gameBoard.placePieceOnBoard(colToBePlace, rowToBePlace, new Piece(pieceName, !lowerTurn));
+
         return true;
     }
 
