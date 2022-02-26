@@ -1,5 +1,8 @@
 package boxshogi;
 
+import java.util.AbstractMap;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Class to represent Box Shogi board
@@ -7,28 +10,33 @@ package boxshogi;
 public class Board {
 
     private final int BOARD_SIZE = 5;
+    private final String[] ALL_POSSIBLE_PIECES =  {"n", "g", "r", "s", "d", "p"};
 
     private Piece[][] board;
 
+    private Map<String, AbstractMap.SimpleEntry<Integer, Integer>> piecePositions;
+
     public Board(boolean empty) {
         // Initial borad.
-        board = new Piece[BOARD_SIZE][BOARD_SIZE];
+        this.board = new Piece[BOARD_SIZE][BOARD_SIZE];
+        this.piecePositions = new HashMap<>();
 
         // IF we need an empty board
         if (empty) { return; }
 
-    	// Store all the possible strings
-        String[] pieces = {"n", "g", "r", "s", "d", "p"};
-
         // Initial the first and last row.
         for (int eachCol = 0; eachCol < BOARD_SIZE; eachCol++) {
-            this.board[eachCol][BOARD_SIZE-1] = new Piece(pieces[eachCol], true);
-            this.board[BOARD_SIZE-1-eachCol][0] = new Piece(pieces[eachCol], false);
+            this.board[eachCol][BOARD_SIZE-1] = new Piece(ALL_POSSIBLE_PIECES[eachCol], true);
+            this.board[BOARD_SIZE-1-eachCol][0] =  new Piece(ALL_POSSIBLE_PIECES[eachCol], false);
+            this.piecePositions.put(ALL_POSSIBLE_PIECES[eachCol], new AbstractMap.SimpleEntry<>(eachCol, BOARD_SIZE-1));
+            this.piecePositions.put(ALL_POSSIBLE_PIECES[eachCol], new AbstractMap.SimpleEntry<>(BOARD_SIZE-1-eachCol, 0));
         }
 
         // Initial preview.
-        this.board[BOARD_SIZE-1][BOARD_SIZE-2] = new Piece(pieces[BOARD_SIZE], true);
-        this.board[0][1] = new Piece(pieces[BOARD_SIZE], false);
+        this.board[BOARD_SIZE-1][BOARD_SIZE-2] = new Piece(ALL_POSSIBLE_PIECES[BOARD_SIZE], true);
+        this.board[0][1] = new Piece(ALL_POSSIBLE_PIECES[BOARD_SIZE], false);
+        this.piecePositions.put(ALL_POSSIBLE_PIECES[BOARD_SIZE], new AbstractMap.SimpleEntry<>(BOARD_SIZE-1, BOARD_SIZE-2));
+        this.piecePositions.put(ALL_POSSIBLE_PIECES[BOARD_SIZE], new AbstractMap.SimpleEntry<>(0, 1));
     }
 
     /* Print board */
@@ -44,12 +52,21 @@ public class Board {
     }
 
     /**
+     * PiecePositions getter.
+     * @return the map storing all locations of each pieces.
+     */
+    public  Map<String, AbstractMap.SimpleEntry<Integer, Integer>> getPiecePosition() {
+        return piecePositions;
+    }
+
+    /**
      * Function that return the piece on given position.
      * @param col integer representing the col
      * @param row integer representing the row
      * @return the Piece on given position
      */
     public Piece getPiece(int col, int row) {
+        if (col < 0 || col > 4 || row < 0 || row > 4) { return null; } 
         return board[col][row];
     }
 
@@ -71,7 +88,6 @@ public class Board {
     public void removePieceFromBoard(int col, int row) {
         this.board[col][row] = null;
     }
-
 
     /**
      * Function that return whether given position is occupied by a piece.

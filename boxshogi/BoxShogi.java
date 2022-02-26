@@ -1,17 +1,20 @@
 package boxshogi;
 
 import java.util.AbstractMap;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-
+import java.util.Map;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 
 public class BoxShogi {
-    private final int MAX_TURN = 200;
+    private final int MAX_TURN = 400;
+    private final List<String> ALL_POSSIBLE_PIECES =  Arrays.asList("n", "g", "r", "s", "d", "p", "+r", "+g", "+n", "+p");
 
     private int turnNumber;
     private int endGameFlag;
@@ -19,12 +22,14 @@ public class BoxShogi {
     private String winMessage;
     private String previewMove;
     private boolean lowerTurn;
+    private boolean isInCheck;
     private List<String> moves;
     private List<String> upperCaptures;
     private List<String> lowerCaptures;
     private List<String> availableMoves;
     private List<Utils.InitialPosition> initialPieces;
     private BufferedReader bufferedReader;
+    private Map<String, AbstractMap.SimpleEntry<Integer, Integer>> piecePositions;
 
     /** File mode */
 
@@ -33,26 +38,37 @@ public class BoxShogi {
         this.endGameFlag = 0;
         this.gameBoard = new Board(true);
         this.lowerTurn = true;
+        this.isInCheck = false;
         this.moves = input.moves;
         this.winMessage = "";
-        this.initialPieces = new LinkedList<Utils.InitialPosition>(input.initialPieces);
+        this.piecePositions = new HashMap<>();
+        this.availableMoves = new LinkedList<>();
         this.upperCaptures = new LinkedList<String>(input.upperCaptures);
         this.lowerCaptures = new LinkedList<String>(input.lowerCaptures);
+        this.initialPieces = new LinkedList<Utils.InitialPosition>(input.initialPieces);
         initialEmptyBoard(initialPieces);
 
         // Run move
+        checkIsInCheck(lowerTurn, false);
         for (String eachMove : moves) {
-            if (!winMessage.equals("") || turnNumber == 400) {
+            if (!winMessage.equals("") || turnNumber == MAX_TURN) {
                 break;
             }
+            this.availableMoves.clear();
+            this.isInCheck = false;
             handleUserInput(eachMove, this.lowerTurn);
             lowerTurn = !lowerTurn;
+            checkIsInCheck(lowerTurn, false);
         }
 
         showGameStatus(lowerTurn);
         System.out.print("\n");
     }
 
+    /**
+     * Function that initialize the board
+     * @param initialPositions all positions needed to be initialed in game board before moves
+     */
     private void initialEmptyBoard(List<Utils.InitialPosition> initialPositions) {
         for (Utils.InitialPosition eachPosition : initialPositions) {
             String[] splited = eachPosition.toString().split(" ");
@@ -61,6 +77,7 @@ public class BoxShogi {
             Piece piece = new Piece(name, Character.isUpperCase(name.charAt(name.length()-1)));
             AbstractMap.SimpleEntry<Integer, Integer> colRowPair = parseStringLocationToColRow(location);
             this.gameBoard.placePieceOnBoard(colRowPair.getKey(), colRowPair.getValue(), piece);
+            piecePositions.put(piece.getName(), colRowPair);
         }
     }
 
@@ -71,10 +88,13 @@ public class BoxShogi {
         this.winMessage = "";
         this.previewMove = "";
         this.lowerTurn = true;
+        this.isInCheck = false;
         this.gameBoard = new Board(false);
+        this.piecePositions = new HashMap<>();
         this.upperCaptures = new LinkedList<>();
         this.lowerCaptures = new LinkedList<>();
         this.availableMoves = new LinkedList<>();
+        this.piecePositions = gameBoard.getPiecePosition();
         this.bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
     }
 
@@ -85,6 +105,9 @@ public class BoxShogi {
 
             // Show game status.
             showGameStatus(lowerTurn);
+
+            // Check is player in check
+            checkIsInCheck(lowerTurn, false);
 
             // Read in input and handle it.
             String userInput = bufferedReader.readLine().trim();
@@ -120,20 +143,25 @@ public class BoxShogi {
         // If win message has been set, show win message
         if (!winMessage.equals("")) {
             gameStatusMessage += winMessage;
-        } else if (turnNumber == 400) {
+        } else if (turnNumber == MAX_TURN && !isInCheck) {
             gameStatusMessage += "Tie game.  Too many moves.";
         } else {
             // If player is in check, show in check.
-            if (availableMoves != null && availableMoves.size() != 0) {
-                if (lowerTurn) { gameStatusMessage += "lower player is in check!"; }
-                else { gameStatusMessage += "UPPER player is in check!"; }
-                gameStatusMessage += "Available moves:\n" + String.join("\n", availableMoves);
-                availableMoves.clear();
+            if (isInCheck && availableMoves.size() == 0) {
+                if (lowerTurn) { gameStatusMessage += "UPPER player wins.  Checkmate."; }
+                else { gameStatusMessage += "lower player wins.  Checkmate."; }
+            } else {
+                if (availableMoves.size() != 0) {
+                    if (lowerTurn) { gameStatusMessage += "lower player is in check!\n"; }
+                    else { gameStatusMessage += "UPPER player is in check!\n"; }
+                    gameStatusMessage += "Available moves:\n" + String.join("\n", availableMoves);
+                    gameStatusMessage += "\n";
+                    availableMoves.clear();
+                }
+                // Show player before ask for input.
+                if (lowerTurn) { gameStatusMessage += "lower>"; }
+                else { gameStatusMessage += "UPPER>"; }
             }
-
-            // Show player before ask for input.
-            if (lowerTurn) {gameStatusMessage += "lower>"; }
-            else { gameStatusMessage += "UPPER>"; }
         }
 
         System.out.print(gameStatusMessage);
@@ -143,9 +171,106 @@ public class BoxShogi {
      * Function that finds all possible moves when player is in check.
      * @param lowerTurn boolean state whether is lower player's turn
      */
-    public void findAvailableMoves(boolean lowerTurn) {
+    private void findAvailableMoves(List<String> pieceNameCheckPlayer, boolean lowerTurn, int driveCol, int driveRow) {
+        // Player is not in check.
+        if (pieceNameCheckPlayer.size() == 0) { return; }
+
+        // Single check
+        if (pieceNameCheckPlayer.size() == 1) {
+            AbstractMap.SimpleEntry<Integer, Integer> attackerPosition = piecePositions.get(pieceNameCheckPlayer.get(0));
+            int attackerCol = attackerPosition.getKey();
+            int attackerRow = attackerPosition.getValue();
+            // If attacker could be captured
+            for (String eachPiece : ALL_POSSIBLE_PIECES) {
+                if (!lowerTurn) { eachPiece = eachPiece.toUpperCase(); }
+                AbstractMap.SimpleEntry<Integer, Integer> eachPiecePosition = piecePositions.get(eachPiece);
+                if (eachPiecePosition == null) { continue; }
+                int eachPieceCol = eachPiecePosition.getKey();
+                int eachPieceRow = eachPiecePosition.getValue();
+                if (!(eachPieceCol == driveCol && eachPieceRow == driveRow) && checkMoveLegal(eachPieceCol, eachPieceRow, attackerCol, attackerRow, lowerTurn, false)) {
+                    String locationToBeMove = convertPositionToString(eachPieceCol, eachPieceRow);
+                    String locationMoveTo = convertPositionToString(attackerCol, attackerRow);
+                    this.availableMoves.add("move " + locationToBeMove + " " + locationMoveTo);
+                }
+            } 
+        }
+
+        // Try to move drive around
+        List<AbstractMap.SimpleEntry<Integer, Integer>> drivePossibleMove = getDrivePossibleMove(driveCol, driveRow);
+        gameBoard.removePieceFromBoard(driveCol, driveRow);
+        for (AbstractMap.SimpleEntry<Integer, Integer> eachPossibleMove : drivePossibleMove) {
+            int colToMove = eachPossibleMove.getKey();
+            int rowToMove = eachPossibleMove.getValue();
+            if (gameBoard.getPiece(colToMove, rowToMove) != null && ((gameBoard.getPiece(colToMove, rowToMove).getIsUpper() && !lowerTurn) 
+                    || (!gameBoard.getPiece(colToMove, rowToMove).getIsUpper() && lowerTurn))) {
+                continue;
+            }
+            boolean safe = true;
+            for (String eachPiece : ALL_POSSIBLE_PIECES) {
+                if (lowerTurn) { eachPiece = eachPiece.toUpperCase(); }
+                AbstractMap.SimpleEntry<Integer, Integer> eachPiecePosition = piecePositions.get(eachPiece);
+                if (eachPiecePosition == null) { continue; }
+                int eachPieceCol = eachPiecePosition.getKey();
+                int eachPieceRow = eachPiecePosition.getValue();
+                if (checkMoveLegal(eachPieceCol, eachPieceRow, colToMove, rowToMove, !lowerTurn, false) 
+                        && !(eachPieceCol == colToMove && eachPieceRow == rowToMove)) {
+                    safe = false;
+                }
+            }
+            if (safe) {
+                String locationToBeMove = convertPositionToString(driveCol, driveRow);
+                String locationMoveTo = convertPositionToString(colToMove, rowToMove);
+                this.availableMoves.add("move " + locationToBeMove + " " + locationMoveTo);
+            }
+        }  
+        gameBoard.placePieceOnBoard(driveCol, driveRow, new Piece("d", !lowerTurn));
     }
-        
+
+    private void checkIsInCheck(boolean lowerTurn, boolean checkMove) {
+        // Get drive position
+        int driveCol;
+        int driveRow;
+        if (lowerTurn) {
+            driveCol = piecePositions.get("d").getKey();
+            driveRow = piecePositions.get("d").getValue();
+        } else {
+            driveCol = piecePositions.get("D").getKey();
+            driveRow = piecePositions.get("D").getValue();
+        }
+
+        // Store all piece that checking current player
+        List<String> pieceNameCheckPlayer = new ArrayList<>();
+        for (String eachPiece : ALL_POSSIBLE_PIECES) {
+            if (lowerTurn) { eachPiece = eachPiece.toUpperCase(); }
+            AbstractMap.SimpleEntry<Integer, Integer> eachPiecePosition = piecePositions.get(eachPiece);
+            if (eachPiecePosition == null) { continue; }
+            int eachPieceCol = eachPiecePosition.getKey();
+            int eachPieceRow = eachPiecePosition.getValue();
+            if (checkMoveLegal(eachPieceCol, eachPieceRow, driveCol, driveRow, lowerTurn, false)) {
+                pieceNameCheckPlayer.add(eachPiece);
+            }
+        }
+
+        // Is in check
+        this.isInCheck = pieceNameCheckPlayer.size() != 0;
+
+        // If needed, find avaliable moves
+        if (!checkMove) {
+            findAvailableMoves(pieceNameCheckPlayer, lowerTurn, driveCol, driveRow);
+        }
+    }
+    
+    private List<AbstractMap.SimpleEntry<Integer, Integer>> getDrivePossibleMove(int col, int row) {
+        List<AbstractMap.SimpleEntry<Integer, Integer>> possibleMove = new ArrayList<>();
+        for (int possiblCol = col - 1; possiblCol <= col + 1; possiblCol++) {
+            for (int possiblRow = row - 1; possiblRow <= row + 1; possiblRow++) {
+                if (possiblCol >= 0 && possiblCol <= 4 && possiblRow >= 0 && possiblRow <=4) {
+                    possibleMove.add(new AbstractMap.SimpleEntry<>(possiblCol, possiblRow));
+                }
+            }
+        }
+        return possibleMove;
+    }
 
     /**
      * Function that handles the user input.`
@@ -207,7 +332,7 @@ public class BoxShogi {
         int newRow =  newColRowPair.getValue();
 
         // Check is the move possible or not.
-        if (checkMoveLegal(col, row, newCol, newRow, pieceToMove, lowerTurn, inputs.length == 4)) {
+        if (checkMoveLegal(col, row, newCol, newRow, lowerTurn, inputs.length == 4)) {
             gameBoard.removePieceFromBoard(col, row);
             Piece pieceOnTargetLocation = gameBoard.getPiece(newCol, newRow);
             if (pieceOnTargetLocation!= null) {
@@ -215,8 +340,10 @@ public class BoxShogi {
                 String pieceName = pieceOnTargetLocation.getName();
                 if (lowerTurn) { lowerCaptures.add(pieceName.substring(pieceName.length()-1).toLowerCase()); }
                 else { upperCaptures.add(pieceName.substring(pieceName.length()-1).toUpperCase()); }
+                piecePositions.remove(pieceOnTargetLocation.getName());
             }
             gameBoard.placePieceOnBoard(newCol, newRow, pieceToMove);
+            piecePositions.remove(pieceToMove.getName());
             
             // Promote piece user asked.
             if (inputs.length == 4 && !pieceToMove.getIsPromoted()) {
@@ -224,8 +351,20 @@ public class BoxShogi {
             }
 
             // Force preview to be promoted if it reach promotion zone.
-            if (pieceToMove.getName().equalsIgnoreCase("p") && ((lowerTurn && newRow == 4) || (!lowerTurn && newRow == 0))) {
+            String pieceToMoveName = pieceToMove.getName();
+            if (pieceToMoveName.equalsIgnoreCase("p") && ((lowerTurn && newRow == 4) || (!lowerTurn && newRow == 0))) {
                 pieceToMove.promotedPiece();
+            }
+
+            // Update locations
+            piecePositions.put(pieceToMove.getName(), new AbstractMap.SimpleEntry<>(newCol, newRow));
+
+            // If is in check after move
+            checkIsInCheck(lowerTurn, true);
+            if (isInCheck) { 
+                gameBoard.removePieceFromBoard(newCol, newRow); 
+                gameBoard.placePieceOnBoard(col, row, pieceToMove);
+                setWinMessage("Illegal move.", lowerTurn);
             }
 
         } else {
@@ -247,7 +386,11 @@ public class BoxShogi {
         endGameFlag = 1;
     }
 
-    private boolean checkMoveLegal(int col, int row, int newCol, int newRow, Piece pieceToMove, boolean lowerTurn, boolean tryPromote) {
+    private boolean checkMoveLegal(int col, int row, int newCol, int newRow, boolean lowerTurn, boolean tryPromote) {
+        // Get pieceToMove
+        Piece pieceToMove = gameBoard.getPiece(col, row);
+        if (pieceToMove == null) { return false; }
+
         // Check if it try to promote, player is actually moving to a promote zone.
         if (tryPromote && (pieceToMove.getIsPromoted() 
                                 || pieceToMove.getName().equalsIgnoreCase("d") 
@@ -346,16 +489,17 @@ public class BoxShogi {
         return true;
     }
 
-
     private boolean checkIsThereAPieceInBetween(int col, int row, int newCol, int newRow) {
         int colIncrement = Integer.signum(newCol - col);
         int rowIncrement = Integer.signum(newRow - row);
         int currentCol = col;
         int currentRow = row;
-        while (currentCol != newCol && currentCol != newCol) {
+        while (!(currentCol == newCol && currentRow == newRow)
+                    && currentCol >= 0 && currentCol <= 4
+                    && currentRow >= 0 && currentRow <= 4) {
             if (!(currentCol == col && currentRow == row) 
                         && !(currentCol == newCol && currentRow == newRow)
-                        && gameBoard.getPiece(currentCol, currentRow) != null) {
+                        && this.gameBoard.getPiece(currentCol, currentRow) != null) {
                 return true;
             }
             currentCol += colIncrement;
@@ -400,12 +544,33 @@ public class BoxShogi {
             return true;
         }
 
+        // Check if the piece is Preview and it raise a check
+        if (pieceName.equalsIgnoreCase("p") && 
+                ((lowerTurn && gameBoard.getPiece(colToBePlace, rowToBePlace+1) != null
+                    && gameBoard.getPiece(colToBePlace, rowToBePlace+1).getName().equals("D"))
+                || (!lowerTurn && gameBoard.getPiece(colToBePlace, rowToBePlace-1) != null
+                    && gameBoard.getPiece(colToBePlace, rowToBePlace-1).getName().equals("d")))) {
+            setWinMessage("Illegal move.", lowerTurn);
+            return true;
+        }
+
+        // Check if two preview is in same column
+        AbstractMap.SimpleEntry<Integer, Integer> previewPosition;
+        if (lowerTurn) { previewPosition = piecePositions.get("p"); }
+        else { previewPosition = piecePositions.get("P"); }
+        if (previewPosition != null && pieceName.equalsIgnoreCase("p") && colToBePlace == previewPosition.getKey()) {
+            setWinMessage("Illegal move.", lowerTurn);
+            return true;
+        }
+ 
         // Remove from captures
         if (lowerTurn) { lowerCaptures.remove(pieceName); }
         else { upperCaptures.remove(pieceName.toUpperCase()); }
 
         // Drop piece on board
-        this.gameBoard.placePieceOnBoard(colToBePlace, rowToBePlace, new Piece(pieceName, !lowerTurn));
+        Piece pieceToBeDrop = new Piece(pieceName, !lowerTurn);
+        this.gameBoard.placePieceOnBoard(colToBePlace, rowToBePlace, pieceToBeDrop);
+        this.piecePositions.put(pieceToBeDrop.getName(), new AbstractMap.SimpleEntry<>(colToBePlace, rowToBePlace));
 
         return true;
     }
@@ -427,5 +592,10 @@ public class BoxShogi {
         }
         System.out.println("Invalid location in getPieceOnLocation!\n"); 
         return null;
+    }
+
+    private String convertPositionToString(int col, int row) {
+        String location = String.valueOf((char) (col + (int) 'a')) + String.valueOf(row+1);
+        return location;
     }
 }
