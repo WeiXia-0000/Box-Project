@@ -9,11 +9,11 @@ public class Piece {
     
     public Piece(String name, boolean isUpper) {
         this.isUpper = isUpper;
+        this.promoted = false;
         // Ensure name is in correct case.
         if (this.isUpper) { this.name = name.toUpperCase(); }
         else { this.name = name.toLowerCase(); }
         if (name.length() == 1) {
-            this.promoted = false;
             this.rule = name;
         } else {
             promotedPiece();

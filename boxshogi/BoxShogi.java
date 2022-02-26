@@ -13,6 +13,7 @@ import java.io.InputStreamReader;
 public class BoxShogi {
     private final int MAX_TURN = 200;
 
+    private int turnNumber;
     private int endGameFlag;
     private Board gameBoard; 
     private String winMessage;
@@ -29,6 +30,7 @@ public class BoxShogi {
 
     public BoxShogi(Utils.TestCase input) {
         // Initial
+        this.endGameFlag = 0;
         this.gameBoard = new Board(true);
         this.lowerTurn = true;
         this.moves = input.moves;
@@ -40,7 +42,7 @@ public class BoxShogi {
 
         // Run move
         for (String eachMove : moves) {
-            if (!winMessage.equals("")) {
+            if (!winMessage.equals("") || turnNumber == 200) {
                 break;
             }
             handleUserInput(eachMove, this.lowerTurn);
@@ -118,6 +120,8 @@ public class BoxShogi {
         // If win message has been set, show win message
         if (!winMessage.equals("")) {
             gameStatusMessage += winMessage;
+        } else if (turnNumber == 200) {
+            gameStatusMessage += "Tie game.  Too many moves.";
         } else {
             // If player is in check, show in check.
             if (availableMoves != null && availableMoves.size() != 0) {
@@ -152,15 +156,17 @@ public class BoxShogi {
     private boolean handleUserInput(String userInpuString, boolean lowerTurn) {
         String[] inputs = userInpuString.split(" ");
         String command = inputs[0];
-        boolean inputHandled = false;
         if (command.equalsIgnoreCase("exit")) { endGameFlag = 1; }
-        else if (command.equalsIgnoreCase("move")) { inputHandled = handleMove(inputs, lowerTurn); }
-        else if (command.equalsIgnoreCase("drop")) { inputHandled = handleDrop(inputs, lowerTurn); }
+        else if (command.equalsIgnoreCase("move")) { handleMove(inputs, lowerTurn); }
+        else if (command.equalsIgnoreCase("drop")) { handleDrop(inputs, lowerTurn); }
 
         // Update player pre move message
         if (lowerTurn) { previewMove = "lower player action: "; }
         else { previewMove = "UPPER player action: "; }
         previewMove += String.join(" ", Arrays.asList(inputs));
+
+        // Increment turn
+        turnNumber++;
 
         return true;
     }
@@ -206,13 +212,15 @@ public class BoxShogi {
             Piece pieceOnTargetLocation = gameBoard.getPiece(newCol, newRow);
             if (pieceOnTargetLocation!= null) {
                 // Capture piece that in target location.
-                if (lowerTurn) { lowerCaptures.add(pieceOnTargetLocation.getName().toLowerCase()); }
-                else { upperCaptures.add(pieceOnTargetLocation.getName().toUpperCase()); }
+                String pieceName = pieceOnTargetLocation.getName();
+                if (lowerTurn) { lowerCaptures.add(pieceName.substring(pieceName.length()-1).toLowerCase()); }
+                else { upperCaptures.add(pieceName.substring(pieceName.length()-1).toUpperCase()); }
             }
             gameBoard.placePieceOnBoard(newCol, newRow, pieceToMove);
 
-            // Promote piece if needed
-            if (inputs.length == 4) {
+            // Promote piece if needed, Promote piece if it is at promotion zone originally
+            if ((inputs.length == 4 || (lowerTurn && row == 4 && inputs.length == 4) 
+                            || (!lowerTurn && row == 0 && inputs.length == 4)) && !pieceToMove.getIsPromoted()) {
                 pieceToMove.promotedPiece();
             }
         } else {
@@ -239,8 +247,8 @@ public class BoxShogi {
         if (tryPromote && (pieceToMove.getIsPromoted() 
                                 || pieceToMove.getName().equalsIgnoreCase("d") 
                                 || pieceToMove.getName().equalsIgnoreCase("s") 
-                                || (lowerTurn && newRow != 4) 
-                                || (!lowerTurn && newRow != 0))) {
+                                || (lowerTurn && row != 4 && newRow != 4 ) 
+                                || (!lowerTurn && row != 0 && newRow != 0))) {
             return false;
         }
 
@@ -375,6 +383,14 @@ public class BoxShogi {
         if ((lowerTurn && !lowerCaptures.contains(pieceName)) 
                 || (!lowerTurn && !upperCaptures.contains(pieceName.toUpperCase()))
                     || (this.gameBoard.getPiece(colToBePlace, rowToBePlace) != null)) {
+            setWinMessage("Illegal move.", lowerTurn);
+            return true;
+        }
+
+        // Check if the piece is Preview and it is being placed in pomotion zone.
+        if (pieceName.equalsIgnoreCase("p") && 
+                ((lowerTurn && rowToBePlace == 4) 
+                || (!lowerTurn && rowToBePlace == 0))) {
             setWinMessage("Illegal move.", lowerTurn);
             return true;
         }
