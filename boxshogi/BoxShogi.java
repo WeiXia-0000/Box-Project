@@ -157,9 +157,6 @@ public class BoxShogi {
         else if (command.equalsIgnoreCase("move")) { inputHandled = handleMove(inputs, lowerTurn); }
         else if (command.equalsIgnoreCase("drop")) { inputHandled = handleDrop(inputs, lowerTurn); }
 
-        // If there is a problem in input
-        if (!inputHandled) { return false; }
-
         // Update player pre move message
         if (lowerTurn) { previewMove = "lower player action: "; }
         else { previewMove = "UPPER player action: "; }
@@ -176,8 +173,8 @@ public class BoxShogi {
      */
     private boolean handleMove(String[] inputs, boolean lowerTurn) {
         // Check input format.
-        if ((inputs.length == 4 && !inputs[3].equalsIgnoreCase("promote")) 
-                || inputs.length != 3
+        if ((!(inputs.length == 4 && inputs[3].equalsIgnoreCase("promote")) 
+                && inputs.length != 3)
                 || !(inputs[1].matches("[a-zA-Z]\\d") && inputs[2].matches("[a-zA-Z]\\d"))) {
             return false;
         }
@@ -204,7 +201,7 @@ public class BoxShogi {
         int newRow =  newColRowPair.getValue();
 
         // Check is the move possible or not.
-        if (checkMoveLegal(col, row, newCol, newRow, pieceToMove, lowerTurn)) {
+        if (checkMoveLegal(col, row, newCol, newRow, pieceToMove, lowerTurn, inputs.length == 4)) {
             gameBoard.removePieceFromBoard(col, row);
             Piece pieceOnTargetLocation = gameBoard.getPiece(newCol, newRow);
             if (pieceOnTargetLocation!= null) {
@@ -213,6 +210,11 @@ public class BoxShogi {
                 else { upperCaptures.add(pieceOnTargetLocation.getName().toUpperCase()); }
             }
             gameBoard.placePieceOnBoard(newCol, newRow, pieceToMove);
+
+            // Promote piece if needed
+            if (inputs.length == 4) {
+                pieceToMove.promotedPiece();
+            }
         } else {
             setWinMessage("Illegal move.", lowerTurn);
         }
@@ -232,67 +234,52 @@ public class BoxShogi {
         endGameFlag = 1;
     }
 
-    private boolean checkMoveLegal(int col, int row, int newCol, int newRow, Piece pieceToMove, boolean lowerTurn) {
-        String pieceName = pieceToMove.getName();
-        String pieceType = pieceName.substring(pieceName.length()-1);
+    private boolean checkMoveLegal(int col, int row, int newCol, int newRow, Piece pieceToMove, boolean lowerTurn, boolean tryPromote) {
+        // Check if it try to promote, player is actually moving to a promote zone.
+        if (tryPromote && (pieceToMove.getIsPromoted() 
+                                || pieceToMove.getName().equalsIgnoreCase("d") 
+                                || pieceToMove.getName().equalsIgnoreCase("s") 
+                                || (lowerTurn && newRow != 4) 
+                                || (!lowerTurn && newRow != 0))) {
+            return false;
+        }
 
         // Compute distance between col and newCol, row and newRow
         int dCol = newCol-col;
         int dRow = newRow-row;
 
-        // If piece is a box drive
-        if (pieceType.equalsIgnoreCase("d")) {
+        // Get rule of current piece
+        String pieceRule = pieceToMove.getRule();
+        if (checkIsThereAPieceInBetween(col, row, newCol, newRow)) {
+            return false;
+        }
+
+        // If piece follows the rule of a box drive
+        if (pieceRule.equalsIgnoreCase("d")) {
             if (Math.abs(dCol) <= 1 && Math.abs(dRow) <= 1) {
                 return true;
             }
             return false;
         }
 
-        // If piece is a box note
-        if (pieceType.equalsIgnoreCase("n")) {
+        // If piece follows the rule of a box note
+        if (pieceRule.equalsIgnoreCase("n")) {
             if (dCol == 0 || dRow == 0) {
-                if ((dCol == 2 && gameBoard.getPiece(col+1, row) != null)
-                        || (dCol == -2 && gameBoard.getPiece(col-1, row) != null) 
-                        || (dRow == 2 && gameBoard.getPiece(col, row+1) != null) 
-                        || (dRow == -2 && gameBoard.getPiece(col, row-1) != null) ) {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        // If piece is box governance
-        if (pieceType.equalsIgnoreCase("g")) {
-            if ((Math.abs(dCol) == 1 && Math.abs(dRow) == 1)) {
                 return true;
-            } else if (Math.abs(dCol) == 2 && Math.abs(dRow) == 2) {
-                if ((dCol == 2 && dRow == 2 && gameBoard.getPiece(col+1, row+1) != null)
-                        || (dCol == 2 && dRow == -2 && gameBoard.getPiece(col+1, row-1) != null) 
-                        || (dCol == -2 && dRow == 2 && gameBoard.getPiece(col-1, row+1) != null) 
-                        || (dCol == -2 && dRow == -2 && gameBoard.getPiece(col-1, row-1) != null) ) {
-                    return true;
-                }
             }
             return false;
         }
 
-        // If piece is box governance
-        if (pieceType.equalsIgnoreCase("g")) {
-            if ((Math.abs(dCol) <= 1 && Math.abs(dRow) <= 1)) {
+        // If piece follows the rule of box governance
+        if (pieceRule.equalsIgnoreCase("g")) {
+            if (Math.abs(dCol) == Math.abs(dRow)) {
                 return true;
-            } else if (Math.abs(dCol) == 2 && Math.abs(dRow) == 2) {
-                if ((dCol == 2 && dRow == 2 && gameBoard.getPiece(col+1, row+1) != null)
-                        || (dCol == 2 && dRow == -2 && gameBoard.getPiece(col+1, row-1) != null) 
-                        || (dCol == -2 && dRow == 2 && gameBoard.getPiece(col-1, row+1) != null) 
-                        || (dCol == -2 && dRow == -2 && gameBoard.getPiece(col-1, row-1) != null) ) {
-                    return true;
-                }
             }
             return false;
         }
 
-        // If piece is box shield
-        if (pieceType.equalsIgnoreCase("s")) {
+        // If piece follows the rule of a  box shield
+        if (pieceRule.equalsIgnoreCase("s")) {
             if ((Math.abs(dCol) <= 1 && Math.abs(dRow) <= 1)) {
                 if (dCol != 0 && ((lowerTurn && dRow == -1)
                         || (!lowerTurn && dRow == 1))) {
@@ -303,8 +290,8 @@ public class BoxShogi {
             return false;
         }
 
-        // If piece is box relay
-        if (pieceType.equalsIgnoreCase("r")) {
+        // If piece follows the rule of a box relay
+        if (pieceRule.equalsIgnoreCase("r")) {
             if ((Math.abs(dCol) <= 1 && Math.abs(dRow) <= 1)) {
                 if (dRow == 0 && dCol != 0) {
                     return false;
@@ -318,17 +305,51 @@ public class BoxShogi {
             return false;
         }
 
-        // If piece is box preview
-        if (pieceType.equalsIgnoreCase("p")) {
+        // If piece follows the rule of a box preview
+        if (pieceRule.equalsIgnoreCase("p")) {
             if (dCol == 0 && ((lowerTurn && dRow == 1) || (!lowerTurn && dRow == -1))) {
                 return true;
             }
             return false;
         }
 
+        // If piece follows the rule of a box preview
+        if (pieceRule.equalsIgnoreCase("gd")) {
+            if ((Math.abs(dCol) <= 1 && Math.abs(dRow) <= 1) 
+                    || (Math.abs(dCol) == Math.abs(dRow))) {
+                return true;
+            }
+            return false;
+        }
+
+        // If piece follows the rule of a box preview
+        if (pieceRule.equalsIgnoreCase("nd")) {
+            if ((Math.abs(dCol) <= 1 && Math.abs(dRow) <= 1) 
+                    || (dCol == 0 || dRow == 0)) {
+                return true;
+            }
+            return false;
+        }
         return true;
     }
 
+
+    private boolean checkIsThereAPieceInBetween(int col, int row, int newCol, int newRow) {
+        int colIncrement = Integer.signum(newCol - col);
+        int rowIncrement = Integer.signum(newRow - row);
+        int currentCol = col;
+        int currentRow = row;
+        while (currentCol != newCol && currentCol != newCol) {
+            if (!(currentCol == col && currentRow == row) 
+                        && !(currentCol == newCol && currentRow == newRow)
+                        && gameBoard.getPiece(currentCol, currentRow) != null) {
+                return true;
+            }
+            currentCol += colIncrement;
+            currentRow += rowIncrement;
+        }
+        return false;
+    }
     /**
      * 
      * @param inputs
