@@ -42,7 +42,7 @@ public class BoxShogi {
 
         // Run move
         for (String eachMove : moves) {
-            if (!winMessage.equals("") || turnNumber == 200) {
+            if (!winMessage.equals("") || turnNumber == 400) {
                 break;
             }
             handleUserInput(eachMove, this.lowerTurn);
@@ -120,7 +120,7 @@ public class BoxShogi {
         // If win message has been set, show win message
         if (!winMessage.equals("")) {
             gameStatusMessage += winMessage;
-        } else if (turnNumber == 200) {
+        } else if (turnNumber == 400) {
             gameStatusMessage += "Tie game.  Too many moves.";
         } else {
             // If player is in check, show in check.
@@ -217,12 +217,17 @@ public class BoxShogi {
                 else { upperCaptures.add(pieceName.substring(pieceName.length()-1).toUpperCase()); }
             }
             gameBoard.placePieceOnBoard(newCol, newRow, pieceToMove);
-
-            // Promote piece if needed, Promote piece if it is at promotion zone originally
-            if ((inputs.length == 4 || (lowerTurn && row == 4 && inputs.length == 4) 
-                            || (!lowerTurn && row == 0 && inputs.length == 4)) && !pieceToMove.getIsPromoted()) {
+            
+            // Promote piece user asked.
+            if (inputs.length == 4 && !pieceToMove.getIsPromoted()) {
                 pieceToMove.promotedPiece();
             }
+
+            // Force preview to be promoted if it reach promotion zone.
+            if (pieceToMove.getName().equalsIgnoreCase("p") && ((lowerTurn && newRow == 4) || (!lowerTurn && newRow == 0))) {
+                pieceToMove.promotedPiece();
+            }
+
         } else {
             setWinMessage("Illegal move.", lowerTurn);
         }
