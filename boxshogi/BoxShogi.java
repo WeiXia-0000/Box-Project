@@ -180,6 +180,45 @@ public class BoxShogi {
             AbstractMap.SimpleEntry<Integer, Integer> attackerPosition = piecePositions.get(pieceNameCheckPlayer.get(0));
             int attackerCol = attackerPosition.getKey();
             int attackerRow = attackerPosition.getValue();
+
+            // Try drop captured piece
+            int colIncrement = Integer.signum(driveCol - attackerCol);
+            int rowIncrement = Integer.signum(driveRow - attackerRow);
+            List<String> captures;
+            if (lowerTurn) { captures = lowerCaptures; }
+            else { captures = upperCaptures; }
+            for (String eachCapture : captures) {
+                if (eachCapture.length() == 0) { continue; }
+                int currentCol = attackerCol + colIncrement;
+                int currentRow = attackerRow + rowIncrement;
+                while (!(currentCol == driveCol && currentRow == driveRow)) {
+                    String locationDropTo = convertPositionToString(currentCol, currentRow);
+                    this.availableMoves.add("drop " + eachCapture.toLowerCase() + " " + locationDropTo);
+                    currentCol += colIncrement;
+                    currentRow += rowIncrement;
+                }
+            }
+            
+            // Try move current piece
+            int currentCol = attackerCol + colIncrement;
+            int currentRow = attackerRow + rowIncrement;
+            while (!(currentCol == driveCol && currentRow == driveRow)) {
+                for (String eachPiece : ALL_POSSIBLE_PIECES) {
+                    if (!lowerTurn) { eachPiece = eachPiece.toUpperCase(); }
+                    AbstractMap.SimpleEntry<Integer, Integer> eachPiecePosition = piecePositions.get(eachPiece);
+                    if (eachPiecePosition == null || eachPiece.equalsIgnoreCase("d")) { continue; }
+                    int eachPieceCol = eachPiecePosition.getKey();
+                    int eachPieceRow = eachPiecePosition.getValue();
+                    if (checkMoveLegal(eachPieceCol, eachPieceRow, currentCol, currentRow, lowerTurn, false)) {
+                        String locationToBeMove = convertPositionToString(eachPieceCol, eachPieceRow);
+                        String locationMoveTo = convertPositionToString(currentCol, currentRow);
+                        this.availableMoves.add("move " + locationToBeMove + " " + locationMoveTo);
+                    }
+                } 
+                currentCol += colIncrement;
+                currentRow += rowIncrement;
+            }
+
             // If attacker could be captured
             for (String eachPiece : ALL_POSSIBLE_PIECES) {
                 if (!lowerTurn) { eachPiece = eachPiece.toUpperCase(); }
@@ -187,7 +226,25 @@ public class BoxShogi {
                 if (eachPiecePosition == null) { continue; }
                 int eachPieceCol = eachPiecePosition.getKey();
                 int eachPieceRow = eachPiecePosition.getValue();
-                if (!(eachPieceCol == driveCol && eachPieceRow == driveRow) && checkMoveLegal(eachPieceCol, eachPieceRow, attackerCol, attackerRow, lowerTurn, false)) {
+                if (checkMoveLegal(eachPieceCol, eachPieceRow, attackerCol, attackerRow, lowerTurn, false)) {
+                    if (eachPieceCol == driveCol && eachPieceRow == driveRow) {
+                        // Store all piece that checking current player
+                        boolean safe = true;
+                        for (String eachPieceAttacker : ALL_POSSIBLE_PIECES) {
+                            if (lowerTurn) { eachPieceAttacker = eachPieceAttacker.toUpperCase(); }
+                            AbstractMap.SimpleEntry<Integer, Integer> eachPiecePositionAttacker = piecePositions.get(eachPieceAttacker);
+                            if (eachPiecePositionAttacker == null) { continue; }
+                            int eachPieceColAttacker = eachPiecePositionAttacker.getKey();
+                            int eachPieceRowAttacker = eachPiecePositionAttacker.getValue();
+                            if (checkMoveLegal(eachPieceColAttacker, eachPieceRowAttacker, attackerCol, attackerRow, lowerTurn, false)) {
+                                safe = false;
+                                break;
+                            }
+                        }
+                        if (!safe) {
+                            continue;
+                        }
+                    }
                     String locationToBeMove = convertPositionToString(eachPieceCol, eachPieceRow);
                     String locationMoveTo = convertPositionToString(attackerCol, attackerRow);
                     this.availableMoves.add("move " + locationToBeMove + " " + locationMoveTo);
