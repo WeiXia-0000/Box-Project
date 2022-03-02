@@ -13,30 +13,33 @@ public class Board {
     private final String[] ALL_POSSIBLE_PIECES =  {"n", "g", "r", "s", "d", "p"};
 
     private Piece[][] board;
-
-    private Map<String, AbstractMap.SimpleEntry<Integer, Integer>> piecePositions;
+    private Map<Boolean, Player> playerStatus;
 
     public Board(boolean empty) {
         // Initial borad.
         this.board = new Piece[BOARD_SIZE][BOARD_SIZE];
-        this.piecePositions = new HashMap<>();
+        this.playerStatus = new HashMap<>();
+        this.playerStatus.put(true, new Player(true));
+        this.playerStatus.put(false, new Player(false));
 
         // IF we need an empty board
         if (empty) { return; }
 
         // Initial the first and last row.
         for (int eachCol = 0; eachCol < BOARD_SIZE; eachCol++) {
-            this.board[eachCol][BOARD_SIZE-1] = new Piece(ALL_POSSIBLE_PIECES[eachCol], true);
-            this.board[BOARD_SIZE-1-eachCol][0] =  new Piece(ALL_POSSIBLE_PIECES[eachCol], false);
-            this.piecePositions.put(ALL_POSSIBLE_PIECES[eachCol], new AbstractMap.SimpleEntry<>(eachCol, BOARD_SIZE-1));
-            this.piecePositions.put(ALL_POSSIBLE_PIECES[eachCol], new AbstractMap.SimpleEntry<>(BOARD_SIZE-1-eachCol, 0));
+            String pieceName = ALL_POSSIBLE_PIECES[eachCol];
+            this.board[BOARD_SIZE-1-eachCol][0] =  new Piece(pieceName, true);
+            this.board[eachCol][BOARD_SIZE-1] = new Piece(pieceName, false);
+            this.playerStatus.get(true).addAPiecePosition(pieceName.toUpperCase(), BOARD_SIZE-1-eachCol, 0);
+            this.playerStatus.get(false).addAPiecePosition(pieceName, eachCol, BOARD_SIZE-1);
         }
 
         // Initial preview.
-        this.board[BOARD_SIZE-1][BOARD_SIZE-2] = new Piece(ALL_POSSIBLE_PIECES[BOARD_SIZE], true);
-        this.board[0][1] = new Piece(ALL_POSSIBLE_PIECES[BOARD_SIZE], false);
-        this.piecePositions.put(ALL_POSSIBLE_PIECES[BOARD_SIZE], new AbstractMap.SimpleEntry<>(BOARD_SIZE-1, BOARD_SIZE-2));
-        this.piecePositions.put(ALL_POSSIBLE_PIECES[BOARD_SIZE], new AbstractMap.SimpleEntry<>(0, 1));
+        String pieceName = ALL_POSSIBLE_PIECES[BOARD_SIZE];
+        this.board[0][1] = new Piece(pieceName, true);
+        this.board[BOARD_SIZE-1][BOARD_SIZE-2] = new Piece(pieceName, false);
+        this.playerStatus.get(true).addAPiecePosition(pieceName, 0, 1);
+        this.playerStatus.get(false).addAPiecePosition(pieceName, BOARD_SIZE-1, BOARD_SIZE-2);
     }
 
     /* Print board */
@@ -52,11 +55,11 @@ public class Board {
     }
 
     /**
-     * PiecePositions getter.
-     * @return the map storing all locations of each pieces.
+     * PlayerStatusMap getter.
+     * @return the map storing two players status
      */
-    public  Map<String, AbstractMap.SimpleEntry<Integer, Integer>> getPiecePosition() {
-        return piecePositions;
+    public  Map<Boolean, Player> getPlayerStatus() {
+        return playerStatus;
     }
 
     /**
