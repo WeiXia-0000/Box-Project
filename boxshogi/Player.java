@@ -9,26 +9,29 @@ import java.util.Map;
 public class Player {
     private boolean lowerTurn;
     private List<String> captures;
-    private AbstractMap.SimpleEntry<Integer,Integer> drivePosition;
-    private Map<String, AbstractMap.SimpleEntry<Integer,Integer>> piecePosition;
-    
+    private AbstractMap.SimpleEntry<Integer, Integer> drivePosition;
+    private Map<String, AbstractMap.SimpleEntry<Integer, Integer>> piecePosition;
+
     public Player(boolean lowerTurn) {
         this.lowerTurn = lowerTurn;
         this.captures = new LinkedList<>();
         this.piecePosition = new HashMap<>();
     }
 
-    public void setDrivePosition(AbstractMap.SimpleEntry<Integer,Integer> position) {
+    public void setDrivePosition(AbstractMap.SimpleEntry<Integer, Integer> position) {
         drivePosition = position;
     }
 
-    public AbstractMap.SimpleEntry<Integer,Integer> getDrivePosition() {
+    public AbstractMap.SimpleEntry<Integer, Integer> getDrivePosition() {
         return drivePosition;
     }
 
     public void addCaptures(String capturedPiece) {
-        if (lowerTurn) { captures.add(capturedPiece.toLowerCase()); }
-        else { captures.add(capturedPiece.toUpperCase()); }
+        if (lowerTurn) {
+            captures.add(capturedPiece.toLowerCase());
+        } else {
+            captures.add(capturedPiece.toUpperCase());
+        }
     }
 
     public void removeCaptures(String capturedPiece) {
@@ -40,7 +43,7 @@ public class Player {
     }
 
     public void setCaptures(List<String> capTures) {
-        captures = new LinkedList<>(capTures);  
+        captures = new LinkedList<>(capTures);
     }
 
     public List<String> getCaptures() {
@@ -55,10 +58,17 @@ public class Player {
         piecePosition.remove(pieceName);
     }
 
-    public AbstractMap.SimpleEntry<Integer,Integer> getPiecePosition(String pieceName) {
-        if (lowerTurn) { pieceName = pieceName.toLowerCase(); }
-        else { pieceName = pieceName.toUpperCase(); }
+    public AbstractMap.SimpleEntry<Integer, Integer> getPiecePosition(String pieceName) {
+        if (lowerTurn) {
+            pieceName = pieceName.toLowerCase();
+        } else {
+            pieceName = pieceName.toUpperCase();
+        }
         return piecePosition.get(pieceName);
     }
-    
+
+    public Map<String, AbstractMap.SimpleEntry<Integer, Integer>> getPiecePosition() {
+        return piecePosition;
+    }
+
 }
