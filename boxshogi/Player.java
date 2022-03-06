@@ -7,16 +7,30 @@ import java.util.List;
 import java.util.Map;
 
 public class Player {
+    
+    /** Private attributes*/
+    private String playerName;
     private boolean lowerTurn;
     private List<String> captures;
     private AbstractMap.SimpleEntry<Integer, Integer> drivePosition;
     private Map<String, AbstractMap.SimpleEntry<Integer, Integer>> piecePosition;
 
+    /** Constructor */
     public Player(boolean lowerTurn) {
+        if (lowerTurn) { this.playerName = "lower"; }
+        else { this.playerName = "UPPER"; }
         this.lowerTurn = lowerTurn;
         this.captures = new LinkedList<>();
         this.piecePosition = new HashMap<>();
     }
+
+    /** <-------------------- Player names related operations --------------------> **/
+
+    public String getPlayerName() {
+        return playerName;
+    }
+
+    /** <-------------------- Drive position related operations --------------------> **/
 
     public void setDrivePosition(AbstractMap.SimpleEntry<Integer, Integer> position) {
         drivePosition = position;
@@ -25,6 +39,8 @@ public class Player {
     public AbstractMap.SimpleEntry<Integer, Integer> getDrivePosition() {
         return drivePosition;
     }
+
+    /** <-------------------- Captures related operations --------------------> **/
 
     public void addCaptures(String capturedPiece) {
         if (lowerTurn) {
@@ -50,6 +66,9 @@ public class Player {
         return captures;
     }
 
+
+    /** <-------------------- Piece position related operations --------------------> **/
+    
     public void addAPiecePosition(String pieceName, int col, int row) {
         piecePosition.put(pieceName, new AbstractMap.SimpleEntry<>(col, row));
     }

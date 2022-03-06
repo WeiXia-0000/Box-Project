@@ -3,7 +3,6 @@ package boxshogi;
 public class Piece {
 
     /** Private attributes*/
-    
     private String name;
     private String rule;
     private boolean isLower;
@@ -23,7 +22,7 @@ public class Piece {
         }
     }
 
-    /** Class getter */
+    /** <---------- Class getter ----------> **/
 
     public String getName() {
         return name;
@@ -43,8 +42,8 @@ public class Piece {
 
     /**
      * Function that check is given move on current piece follows the basic rule.
-     * @param dCol the col distance the piece woule be move to
-     * @param dRow the row distance the piece woule be move to
+     * @param dCol the col distance/direction the piece woule be move to
+     * @param dRow the row distance/direction the piece woule be move to
      * @return a boolean - true means the move follows basic rule; false otherwise
      */
     public boolean checkMoveFollowBasicRule(int dCol, int dRow) {
@@ -56,7 +55,7 @@ public class Piece {
             return false;
         }
 
-        // Check basic rule when it is piece a box note
+        // Check basic rule when it is piece a box note.
         if (rule.equalsIgnoreCase("n")) {
             if (dCol == 0 || dRow == 0) {
                 return true;
@@ -64,7 +63,7 @@ public class Piece {
             return false;
         }
 
-        // Check basic rule when it is piece a box governance
+        // Check basic rule when it is piece a box governance.
         if (rule.equalsIgnoreCase("g")) {
             if (Math.abs(dCol) == Math.abs(dRow)) {
                 return true;
@@ -84,7 +83,7 @@ public class Piece {
             return false;
         }
 
-        // Check basic rule when it is piece a box relay
+        // Check basic rule when it is piece a box relay.
         if (rule.equalsIgnoreCase("r")) {
             if ((Math.abs(dCol) <= 1 && Math.abs(dRow) <= 1)) {
                 if (dRow == 0 && dCol != 0) {
@@ -99,7 +98,7 @@ public class Piece {
             return false;
         }
 
-        // Check basic rule when it is piece a box preview
+        // Check basic rule when it is piece a box preview.
         if (rule.equalsIgnoreCase("p")) {
             if (dCol == 0 && ((isLower && dRow == 1) || (!isLower && dRow == -1))) {
                 return true;
@@ -107,7 +106,7 @@ public class Piece {
             return false;
         }
 
-        // Check basic rule when it is piece a upgraded box governance
+        // Check basic rule when it is piece a upgraded box governance.
         if (rule.equalsIgnoreCase("gd")) {
             if ((Math.abs(dCol) <= 1 && Math.abs(dRow) <= 1) 
                     || (Math.abs(dCol) == Math.abs(dRow))) {
@@ -116,7 +115,7 @@ public class Piece {
             return false;
         }
 
-        // Check basic rule when it is piece a upgraded box note
+        // Check basic rule when it is piece a upgraded box note.
         if (rule.equalsIgnoreCase("nd")) {
             if ((Math.abs(dCol) <= 1 && Math.abs(dRow) <= 1) 
                     || (dCol == 0 || dRow == 0)) {
