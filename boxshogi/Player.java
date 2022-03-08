@@ -7,10 +7,11 @@ import java.util.List;
 import java.util.Map;
 
 public class Player {
-    
+
     /** Private attributes*/
     private String playerName;
     private boolean lowerTurn;
+    private boolean isInCheck;
     private List<String> captures;
     private AbstractMap.SimpleEntry<Integer, Integer> drivePosition;
     private Map<String, AbstractMap.SimpleEntry<Integer, Integer>> piecePosition;
@@ -20,6 +21,7 @@ public class Player {
         if (lowerTurn) { this.playerName = "lower"; }
         else { this.playerName = "UPPER"; }
         this.lowerTurn = lowerTurn;
+        this.isInCheck = false;
         this.captures = new LinkedList<>();
         this.piecePosition = new HashMap<>();
     }
@@ -28,6 +30,17 @@ public class Player {
 
     public String getPlayerName() {
         return playerName;
+    }
+
+
+    /** <-------------------- Player is incheck related operations --------------------> **/
+
+    public boolean getIsInCheck() {
+        return isInCheck;
+    }
+
+    public void setIsInCheck(boolean inCheck) {
+        isInCheck = inCheck;
     }
 
     /** <-------------------- Drive position related operations --------------------> **/
