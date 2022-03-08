@@ -47,6 +47,11 @@ public class Piece {
      * @return a boolean - true means the move follows basic rule; false otherwise
      */
     public boolean checkMoveFollowBasicRule(int dCol, int dRow) {
+        // If stay at same position
+        if (dCol == 0 && dRow == 0) {
+            return true;
+        }
+        
         // Check basic rule when it is piece a box drive
         if (rule.equalsIgnoreCase("d")) {
             if (Math.abs(dCol) <= 1 && Math.abs(dRow) <= 1) {
