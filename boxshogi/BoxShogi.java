@@ -19,11 +19,11 @@ public class BoxShogi {
     private final int MAX_TURN = 400;
     private int turnNumber;
     private List<String> moves;
+    private PrintStream outStream;
     private List<Utils.InitialPosition> initialPieces;
 
     /** Interactive mode only attribute **/
     private String errorMessage;
-    private PrintStream outStream;
     private BufferedReader bufferedReader;
 
     /** Both mode sharing attributes **/
@@ -40,13 +40,14 @@ public class BoxShogi {
 
     /** <---------------------- File mode only functions ----------------------> **/
 
-    public BoxShogi(Utils.TestCase input) {
+    public BoxShogi(Utils.TestCase input, PrintStream outputStream) {
         // Initial
         this.modeFlag = 0;
         this.endGameFlag = 0;
         this.lowerTurn = true;
         this.winMessage = "";
         this.moves = input.moves;
+        this.outStream = outputStream;
         this.gameBoard = new Board(true);
         this.playerStatus = new HashMap<>();
         this.availableMoves = new LinkedList<>();
@@ -63,7 +64,7 @@ public class BoxShogi {
      */
     public void runGameInFileMode() {
         if (modeFlag != 0) {
-            System.out.println("You cannot call run game on the game object in interactive mode!");
+            outStream.println("You cannot call run game on the game object in interactive mode!");
         }
         // Run move;
         examineIsDriveInCheck(false);
@@ -78,8 +79,8 @@ public class BoxShogi {
             examineIsDriveInCheck(false);
         }
 
-        showGameStatus(System.out);
-        System.out.print("\n");
+        showGameStatus(outStream);
+        outStream.print("\n");
     }
 
     /**

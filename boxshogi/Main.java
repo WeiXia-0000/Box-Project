@@ -10,7 +10,7 @@ public class Main {
         } else if (args.length == 2 && args[0].equals("-f")) {
             try {
                 Utils.TestCase input = Utils.parseTestCase(args[1]);
-                BoxShogi game = new BoxShogi(input);
+                BoxShogi game = new BoxShogi(input, System.out);
                 game.runGameInFileMode();
                 // String sampleOutput = "UPPER player action: drop s d1\n"
                 // + "5 |__|__| R|__| D|\n"
